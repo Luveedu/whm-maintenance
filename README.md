@@ -2,4 +2,4 @@
 Repair WHM / cPanel servers easily in one command.
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/Luveedu/RCS-License-Renew/refs/heads/main/continue.sh)
+bash <(curl -s https://raw.githubusercontent.com/Luveedu/whm-maintenance/refs/heads/main/repair.sh)
