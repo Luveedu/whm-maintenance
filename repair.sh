@@ -25,6 +25,7 @@ else
 fi
 
 # 3. Restart cpsrvd
+execute_with_delay 'find /var/cpanel/sessions/raw/ -type f -delete'
 execute_with_delay '/scripts/restartsrv_cpsrvd'
 
 # 4. Check and fix cPanel packages
