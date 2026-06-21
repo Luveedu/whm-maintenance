@@ -5,13 +5,14 @@ execute_with_delay() {
     echo -e "\n=================================================="
     echo "Executing: $1"
     echo "=================================================="
-    eval "$1"
+    # Using bash -c instead of eval for slightly better containment
+    bash -c "$1"
     sleep 2
 }
 
 echo "Starting Server Repair Process..."
 
-# 1. Clear Logs via remote script
+# 1. Clear Logs via remote script (Ensure you trust this source!)
 execute_with_delay 'wget -qO- https://raw.githubusercontent.com/Luveedu/clear-whm-logs/refs/heads/main/clear.sh | bash'
 
 # 2. Optional cPanel Update
@@ -45,43 +46,29 @@ if [[ "$beta_repo" =~ ^[Yy]$ ]]; then
 fi
 
 execute_with_delay 'yum clean all'
-execute_with_delay 'yum check-update'
+# Note: Removed 'yum check-update' as it is redundant right before 'yum update'
 execute_with_delay "yum update $CL_FLAG -y"
 execute_with_delay "yum groupupdate alt-php $CL_FLAG -y"
 execute_with_delay "yum update imunify360-firewall $IM_FLAG -y"
 
-# 6. Restart all cPanel services
-echo -e "\n=================================================="
-echo "Restarting all cPanel services..."
-echo "=================================================="
-for svc in /usr/local/cpanel/scripts/restartsrv_*; do
-    if [ -x "$svc" ]; then
-        echo "Running: $svc"
-        "$svc"
-        sleep 2
-    fi
-done
-
-# 7. RCS License Renew
-execute_with_delay 'bash <(curl -s https://raw.githubusercontent.com/Luveedu/RCS-License-Renew/refs/heads/main/continue.sh)'
-
-# 8. Public Resolver Change
+# 6. RCS License Renew & Public Resolver Change
+execute_with_delay 'curl -sSL https://raw.githubusercontent.com/Luveedu/RCS-License-Renew/refs/heads/main/continue.sh | bash'
 execute_with_delay 'curl -sSL https://raw.githubusercontent.com/Luveedu/Public-Resolver-Change/refs/heads/main/nsetup.sh | sudo bash'
 
-# 9. Restart all cPanel services again
+# 7. Restart essential cPanel services
+# It is highly recommended to target specific services rather than blindly looping all of them.
 echo -e "\n=================================================="
-echo "Restarting all cPanel services (Second Pass)..."
+echo "Restarting essential cPanel services..."
 echo "=================================================="
-for svc in /usr/local/cpanel/scripts/restartsrv_*; do
-    if [ -x "$svc" ]; then
-        echo "Running: $svc"
-        "$svc"
+SERVICES=("cpsrvd" "mysql" "httpd" "exim" "pureftpd")
+
+for svc in "${SERVICES[@]}"; do
+    if [ -x "/usr/local/cpanel/scripts/restartsrv_$svc" ]; then
+        echo "Running: restartsrv_$svc"
+        "/usr/local/cpanel/scripts/restartsrv_$svc"
         sleep 2
     fi
 done
-
-# 10. RCS License Renew (Second Pass)
-execute_with_delay 'bash <(curl -s https://raw.githubusercontent.com/Luveedu/RCS-License-Renew/refs/heads/main/continue.sh)'
 
 echo -e "\n=================================================="
 echo "Repair process completed successfully!"
